@@ -25,7 +25,7 @@ Run with Docker:
 
 ```bash
 docker build -t smtp-router .
-docker run -p 1025:1025 -v $(pwd)/config.yaml:/app/config.yaml -v $(pwd)/round_robin.star:/app/round_robin.star smtp-router
+docker run -p 1020:1020 -v $(pwd)/config.yaml:/app/config.yaml -v $(pwd)/round_robin.star:/app/round_robin.star smtpmux
 ```
 
 ## Development
@@ -39,12 +39,12 @@ go test ./...
 
 ### Downstream 1 (Port 1026)
 ```bash
-docker run -d -p 1026:1025 -p 8026:8025 mailhog/mailhog
+docker run --rm -d -p 1027:1025 -p 8027:8025 --name mailserve1 mailhog/mailhog
 ```
 
 ### Downstream 2 (Port 1027)
 ```bash
-docker run -d -p 1027:1025 -p 8027:8025 mailhog/mailhog
+docker run --rm -d -p 1026:1025 -p 8026:8025 --name mailserve2 mailhog/mailhog
 ```
 
 ## Send Email Locally
@@ -59,7 +59,7 @@ swaks --to recipient@example.com \
 ```
 
 ## Dynamic Selector (Starlark)
-
+TODO: update for go plugins
 You can define your own routing logic in a Starlark script (Python-like syntax).
 
 Example `round_robin.star`:

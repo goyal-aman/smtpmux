@@ -1,7 +1,7 @@
 users:
   - email: "test@user.com"
     password: "password123"
-    selector_algo_path: "./waterfall.star"
+    selector_algo_path: "./plugins/round_robin/round-robin-plugin"
     downstreams:
       - addr: "localhost:1026"
         user: "any"

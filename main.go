@@ -21,13 +21,13 @@ func main() {
 	// be := &backend.Backend{}
 	be := backend.NewBackend(cfg)
 	s := smtp.NewServer(be)
-	s.Addr = ":1022"
+	s.Addr = ":1020"
 	s.Domain = "localhost"
 
 	// This is the critical line you need:
 	s.AllowInsecureAuth = true // Allow auth over non-TLS (important for local testing)
 
-	log.Println("Starting SMTP Proxy on :1025")
+	log.Println("Starting SMTP Proxy on :1020")
 	if err := s.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}

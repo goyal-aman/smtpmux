@@ -5,12 +5,16 @@ import (
 	"io"
 	"log"
 	netsmtp "net/smtp"
+	"os"
 	"strings"
+
+	"os/exec"
 
 	"github.com/emersion/go-sasl"
 	"github.com/emersion/go-smtp"
+	"github.com/goyal-aman/mailmux/src/shared"
 	"github.com/goyal-aman/mailmux/src/types"
-	"go.starlark.net/starlark"
+	"github.com/hashicorp/go-plugin"
 )
 
 type Session struct {
@@ -29,80 +33,77 @@ func NewSession(cfg types.Config) *Session {
 func (s *Session) Data(r io.Reader) error {
 	mailData, _ := io.ReadAll(r)
 
-	// 1. Convert Downstreams to Starlark List of Structs
-	var starlarkDownstreams []starlark.Value
+	// 1. Setup go-plugin Client
+	client := plugin.NewClient(&plugin.ClientConfig{
+		HandshakeConfig: shared.HandshakeConfig,
+		Plugins: map[string]plugin.Plugin{
+			"selector": &shared.SelectorPlugin{},
+		},
+		Cmd: exec.Command(s.CurrentUser.SelectorAlgoPath),
+		AllowedProtocols: []plugin.Protocol{
+			plugin.ProtocolNetRPC,
+		},
+	})
+	defer client.Kill()
+
+	// 2. Connect via RPC
+	rpcClient, err := client.Client()
+	if err != nil {
+		log.Printf("Error connecting to plugin: %v", err)
+		return err
+	}
+
+	// 3. Request the plugin
+	raw, err := rpcClient.Dispense("selector")
+	if err != nil {
+		log.Printf("Error dispensing plugin: %v", err)
+		return err
+	}
+
+	selector := raw.(shared.Selector)
+
+	// 4. Call the plugin
+	log.Println("Calling plugin selector...")
+	selectedAddr, err := selector.Select(s.CurrentUser.Downstreams)
+	if err != nil {
+		log.Printf("Plugin selection failed: %v", err)
+		return err
+	}
+	log.Printf("Plugin selected: %s", selectedAddr)
+
+	// 5. Find the selected downstream credentials
+	var selectedDS types.Downstream
+	found := false
 	for _, ds := range s.CurrentUser.Downstreams {
-		dsDict := starlark.NewDict(3)
-		dsDict.SetKey(starlark.String("addr"), starlark.String(ds.Addr))
-		dsDict.SetKey(starlark.String("user"), starlark.String(ds.User))
-		dsDict.SetKey(starlark.String("pass"), starlark.String(ds.Pass))
-		starlarkDownstreams = append(starlarkDownstreams, dsDict)
+		if ds.Addr == selectedAddr {
+			selectedDS = ds
+			found = true
+			break
+		}
 	}
-	slDownstreams := starlark.NewList(starlarkDownstreams)
-
-	// 2. Define the send function to be called from Starlark
-	// It expects a single argument: the downstream dict
-	sendFunc := func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-		var dsDict *starlark.Dict
-		if err := starlark.UnpackArgs("send", args, kwargs, "ds", &dsDict); err != nil {
-			return nil, err
-		}
-
-		// Extract fields from dict
-		addrV, _, _ := dsDict.Get(starlark.String("addr"))
-		userV, _, _ := dsDict.Get(starlark.String("user"))
-		passV, _, _ := dsDict.Get(starlark.String("pass"))
-
-		addr := addrV.(starlark.String).GoString()
-		user := userV.(starlark.String).GoString()
-		pass := passV.(starlark.String).GoString()
-
-		// Perform the actual SMTP send
-		auth := netsmtp.PlainAuth("", user, pass, strings.Split(addr, ":")[0])
-		err := netsmtp.SendMail(addr, auth, s.From, s.To, mailData)
-		if err != nil {
-			return starlark.String(err.Error()), nil // Return error as string
-		}
-		return starlark.None, nil // Success
+	if !found {
+		return errors.New("selected downstream not found in config")
 	}
 
-	// 3. Setup Starlark Thread & Predeclared environment
-	thread := &starlark.Thread{Name: "selector"}
-	predeclared := starlark.StringDict{
-		"send": starlark.NewBuiltin("send", sendFunc),
-	}
-
-	// 4. Execute the user's script
-	log.Println("Loading selector algo:", s.CurrentUser.SelectorAlgoPath)
-	globals, err := starlark.ExecFile(thread, s.CurrentUser.SelectorAlgoPath, nil, predeclared)
-	if err != nil {
-		log.Printf("Failed to load selector algo: %v", err)
-		// Fallback: try first downstream
-		if len(s.CurrentUser.Downstreams) > 0 {
-			ds := s.CurrentUser.Downstreams[0]
-			auth := netsmtp.PlainAuth("", ds.User, ds.Pass, strings.Split(ds.Addr, ":")[0])
-			return netsmtp.SendMail(ds.Addr, auth, s.From, s.To, mailData)
-		}
+	if err := send(selectedDS.User, selectedDS.Pass, selectedDS.Addr, s.From, s.To, mailData); err != nil {
 		return err
 	}
 
-	// 5. Call the 'selector' function from the script
-	selectorFunc, ok := globals["selector"]
-	if !ok {
-		return errors.New("script must define a 'selector(downstreams)' function")
+	return nil
+
+}
+
+func send(user, pass, addr, from string, to []string, mailData []byte) error {
+	var auth netsmtp.Auth
+	useInsecureAuth := os.Getenv("USE_INSECURE_AUTH")
+	if useInsecureAuth == "true" {
+		auth = &insecurePlainAuth{"", user, pass, strings.Split(addr, ":")[0]}
+	} else {
+		auth = netsmtp.PlainAuth("", user, pass, strings.Split(addr, ":")[0])
 	}
 
-	// selector(downstreams)
-	ret, err := starlark.Call(thread, selectorFunc, starlark.Tuple{slDownstreams}, nil)
-	if err != nil {
-		return err
-	}
-
-	// Check return value
-	if ret == starlark.None {
-		return nil // Success
-	}
-	return errors.New(ret.String())
+	// Use InsecurePlainAuth to allow sending credentials to downstream containers (which are not localhost) without TLS
+	return netsmtp.SendMail(addr, auth, from, to, mailData)
 }
 
 func (s *Session) Mail(from string, opts *smtp.MailOptions) error {

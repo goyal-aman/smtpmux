@@ -1,24 +1,26 @@
 # Build Stage
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24.6-alpine AS builder
 
 WORKDIR /app
 
 COPY go.mod go.sum ./
-RUN go mod download
+RUN go mod tidy
+
 
 COPY . .
-RUN go build -o smtp-router .
+RUN go build -o /app/plugins/round_robin/round-robin-plugin /app/plugins/round_robin/main.go
+RUN go build -o smtpmux .
 
 # Run Stage
 FROM alpine:latest
 
 WORKDIR /app
 
-COPY --from=builder /app/smtp-router .
-COPY config.yaml .
+COPY --from=builder /app/smtpmux .
+COPY --from=builder /app/config.yaml .
+COPY --from=builder /app/plugins/ /app/plugins/
 # Copy the Starlark script if it's not embedded or if you want it to be editable
-COPY round_robin.star .
 
-EXPOSE 1025
+EXPOSE 1020
 
-CMD ["./smtp-router"]
+CMD ["./smtpmux"]
