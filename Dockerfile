@@ -1,5 +1,5 @@
 # Build Stage
-FROM golang:1.24.6-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.24.6-alpine AS builder
 
 WORKDIR /app
 
@@ -8,8 +8,9 @@ RUN go mod tidy
 
 
 COPY . .
-RUN go build -o /app/plugins/round_robin/round-robin-plugin /app/plugins/round_robin/main.go
-RUN go build -o smtpmux .
+ARG TARGETOS TARGETARCH
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /app/plugins/round_robin/round-robin-plugin /app/plugins/round_robin/main.go
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o smtpmux .
 
 # Run Stage
 FROM alpine:latest
