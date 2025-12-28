@@ -47,6 +47,17 @@ docker run -d -p 1026:1025 -p 8026:8025 mailhog/mailhog
 docker run -d -p 1027:1025 -p 8027:8025 mailhog/mailhog
 ```
 
+## Send Email Locally
+```
+swaks --to recipient@example.com \
+      --from test@user.com \
+      --server localhost:1022 \
+      -a PLAIN \
+      --auth-user test@user.com \
+      --auth-password password123 \
+      --body "maaaa"
+```
+
 ## Dynamic Selector (Starlark)
 
 You can define your own routing logic in a Starlark script (Python-like syntax).
