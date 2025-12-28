@@ -1,0 +1,11 @@
+users:
+  - email: "test@user.com"
+    password: "password123"
+    selector_algo_path: "./plugins/round_robin/round-robin-plugin"
+    downstreams:
+      - addr: "mailserve1:1025"
+        user: "any"
+        pass: "any"
+      - addr: "mailserve2:1025"
+        user: "any"
+        pass: "any"

@@ -1,0 +1,40 @@
+services:
+  smtpmux:
+    image: ghcr.io/goyal-aman/smtpmux:10
+    container_name: smtpmux
+    restart: always
+    ports:
+      - '1020:1020'
+    volumes:
+      - ./config.yaml:/app/config.yaml
+    networks:
+      - internal
+    environment:
+      # vaultwarden needs tls connection unless its on localnetwork. in our docker compose we are using
+      # mailserver1, mailserver2 as the downstreams. so we need to use insecure auth. 
+      # in production use dont set this var
+      - USE_INSECURE_AUTH=true
+
+  mailserve1:
+    image: mailhog/mailhog
+    container_name: mailserve1
+    restart: always
+    ports:
+      - '1026:1025'
+      - '8026:8025'
+    networks:
+      - internal
+
+  mailserve2:
+    image: mailhog/mailhog
+    container_name: mailserve2
+    restart: always
+    ports:
+      - '1027:1025'
+      - '8027:8025'
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge

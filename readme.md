@@ -1,23 +1,74 @@
-# SMTP Router
+# SMTP Mux
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-A smart SMTP proxy that routes outgoing emails to different downstream SMTP servers based on custom logic defined in **Starlark** (Python-like) scripts.
+SMTP Mux is a smart SMTP proxy that routes outgoing emails to different downstream SMTP servers based on custom logic. It allows you to dynamically select the best delivery path for each email using plugins (e.g., Round Robin, Waterfall, or custom logic).
 
 ## Quick Start
 
-1.  **Clone and Run**
+Get up and running in seconds using the provided Docker Compose setup.
+
+1.  **Navigate to the quickstart directory:**
     ```bash
-    git clone https://github.com/goyal-aman/mailmux.git
-    cd mailmux
-    go run .
+    cd quickstart
     ```
 
-2.  **Configure**
-    Edit `config.yaml` to define your users and downstream servers.
+2.  **Start the services:**
+    ```bash
+    docker compose up -d
+    ```
+    This starts:
+    - `smtpmux` (the router) on port `1020`
+    - `mailserve1` (MailHog) on port `1026` (UI: http://localhost:8026)
+    - `mailserve2` (MailHog) on port `1027` (UI: http://localhost:8027)
 
-3.  **Scripting**
-    Edit `round_robin.star` to define your routing logic.
+3.  **Send a test email:**
+    Use `swaks` to send an email through the router:
+    ```bash
+    swaks --to hello@smtpmux.what \
+          --from curious@user.com \
+          --server localhost:1020 \
+          -a PLAIN \
+          --auth-user test@user.com \
+          --auth-password password123 \
+          --body "hello user"
+    ```
+
+4.  **Verify delivery:**
+    Open http://localhost:8026 and http://localhost:8027. You should see the email appear in one of them, depending on the routing logic.
+
+## Features
+- **Dynamic Routing**: Route emails based on sender, recipient, or custom logic.
+- **Plugin System**: Write routing logic in Go using the `go-plugin` architecture.
+- **Docker Ready**: Fully containerized for easy deployment.
+- **Protocol Support**: Supports standard SMTP authentication (PLAIN).
+
+## Custom Selector Algorithms
+
+You can write your own routing logic in Go by implementing the `Selector` interface.
+
+1.  **Create a new plugin**:
+    Start from ./plugins/round_robin/main.go and modify the select logic as per your needs.
+    ```go
+    type MySelector struct{}
+
+    func (s *MySelector) Select(downstreams []types.Downstream) (string, error) {
+        // Your custom logic here
+        // e.g., return downstreams[0].Addr, nil
+    }
+    ```
+
+2.  **Build the plugin**:
+    ```bash
+    go build -o my-plugin ./my_plugin.go
+    ```
+
+3.  **Update Config**:
+    Point `config.yaml` to your new binary:
+    ```yaml
+    selector_algo_path: "./my-plugin"
+    ```
+
+4.  **Mount & Restart**:
+    If using Docker, mount the binary into the container and restart.
 
 ## Docker
 
