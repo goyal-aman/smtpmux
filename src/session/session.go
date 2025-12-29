@@ -85,7 +85,9 @@ func (s *Session) Data(r io.Reader) error {
 		return errors.New("selected downstream not found in config")
 	}
 
-	if err := send(selectedDS.User, selectedDS.Pass, selectedDS.Addr, s.From, s.To, mailData); err != nil {
+	// Update the From field in the mail data to the selected downstream user
+	updatedMailData := UpdateFromUser(mailData, selectedDS.User)
+	if err := send(selectedDS.User, selectedDS.Pass, selectedDS.Addr, selectedDS.User, s.To, updatedMailData); err != nil {
 		return err
 	}
 
@@ -93,7 +95,24 @@ func (s *Session) Data(r io.Reader) error {
 
 }
 
+func UpdateFromUser(mailDataBytes []byte, fromUser string) []byte {
+	mailDataStr := string(mailDataBytes)
+	lines := strings.Split(mailDataStr, "\r\n")
+
+	newLines := make([]string, len(lines))
+	for idx, line := range lines {
+		if strings.HasPrefix(line, "From: ") {
+			newLines[idx] = "From: " + fromUser
+		} else {
+			newLines[idx] = line
+		}
+	}
+
+	return []byte(strings.Join(newLines, "\r\n"))
+}
+
 func send(user, pass, addr, from string, to []string, mailData []byte) error {
+	// log.Printf("Sending via User[%s], Pass[%s], Addr[%s], From[%s], To[%v]", user, pass, addr, from, to)
 	var auth netsmtp.Auth
 	useInsecureAuth := os.Getenv("USE_INSECURE_AUTH")
 	if useInsecureAuth == "true" {
@@ -107,31 +126,37 @@ func send(user, pass, addr, from string, to []string, mailData []byte) error {
 }
 
 func (s *Session) Mail(from string, opts *smtp.MailOptions) error {
+	// log.Println("Mail from: ", from)
 	s.From = from
 	return nil
 }
 
 func (s *Session) Rcpt(to string, opts *smtp.RcptOptions) error {
+	// log.Println("Rcpt to: ", to)
 	s.To = append(s.To, to)
 	return nil
 }
 
 func (s *Session) Reset() {
+	// log.Println("Resetting session")
 	s.From = ""
 	s.To = nil
 }
 
 func (s *Session) Logout() error {
+	// log.Println("Logging out")
 	return nil
 }
 
 // 1. The Session must tell the server what it can do
 func (s *Session) AuthMechanisms() []string {
+	// log.Println("AuthMechanisms")
 	return []string{sasl.Plain}
 }
 
 // 2. The Session handles the actual verification
 func (s *Session) Auth(mech string) (sasl.Server, error) {
+	// log.Println(fmt.Sprintf("Auth mechanism: %s", mech))
 	if mech == sasl.Plain {
 		return sasl.NewPlainServer(func(identity, username, password string) error {
 			if identity != "" && identity != username {
@@ -146,6 +171,7 @@ func (s *Session) Auth(mech string) (sasl.Server, error) {
 // 2. The Session handles the actual verification
 // AuthPlain is the specific helper method for PLAIN auth
 func (s *Session) AuthPlain(username, password string) error {
+	// log.Printf("AuthPlain: username[%s], password[%s] \n", username, password)
 	for _, u := range s.cfg.Users {
 		if u.Email == username && u.Password == password {
 			s.CurrentUser = u // Ensure this is stored to prevent the 'index out of range' panic
@@ -156,5 +182,6 @@ func (s *Session) AuthPlain(username, password string) error {
 }
 
 func (s *Session) AuthLogin(username, password string) error {
+	// log.Printf("AuthLogin: username[%s], password[%s] \n", username, password)
 	return s.AuthPlain(username, password)
 }
