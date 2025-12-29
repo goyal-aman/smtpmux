@@ -1,6 +1,65 @@
 # SMTP Mux
+SmtpMux is a pluggable SMTP proxy and router written in Go that solves these reliability issues by acting as an intelligent intermediary (multiplexer) between your applications and your mail providers.
 
-SMTP Mux is a smart SMTP proxy that routes outgoing emails to different downstream SMTP servers based on custom logic. It allows you to dynamically select the best delivery path for each email using plugins (e.g., Round Robin, Waterfall, or custom logic).
+Many self-hosted applications and microservices (such as Vaultwarden, Nextcloud, or Gitea) only support the configuration of a single SMTP server. This creates a critical single point of failure in the system's communication layer:
+
+* Service Downtime: If the primary mail provider (e.g., Gmail, Zoho, or SendGrid) experiences an outage, the application loses the ability to send password resets, 2FA codes, and urgent notifications.
+
+* Rate Limiting: Free or low-tier SMTP plans often have strict hourly or daily sending limits. Once reached, subsequent emails are blocked, which can break essential workflows.
+
+* Lack of Native Failover: Most applications do not have built-in logic to switch to a backup provider or distribute traffic intelligently, forcing users to manually reconfigure settings during an emergency.
+
+```mermaid
+graph TD
+    %% Node Definitions
+    App1([User App A])
+    App2([User App B])
+    App3([Microservice C])
+
+    subgraph MUX_CORE ["smtpmux Proxy Layer"]
+        direction TB
+        Ingress{{"📥 SMTP Ingress <br/> (Port 25/587)"}}
+        
+        subgraph ENGINE ["Logic Engine"]
+            direction LR
+            Auth[("Auth & TLS<br/>Termination")]
+            Parser{"Parser &<br/>Queue"}
+            Router{{"🚦 Multiplexer<br/>Strategy"}}
+        end
+
+        StateDB[(State Memory)]
+    end
+
+    subgraph UPSTREAMS ["Encrypted Upstream Tunnels"]
+        P1["Gmail (Primary)"]
+        P2["AWS SES (Secondary)"]
+        P3["SendGrid (Tertiary)"]
+    end
+
+    %% Connections
+    App1 & App2 & App3 ==>|Plain/STARTTLS| Ingress
+    Ingress --> Auth
+    Auth --> Parser
+    Parser --> Router
+    Router <-->|Check Health| StateDB
+
+    %% Routing Paths
+    Router -.->|1. Attempt| P1
+    Router -.->|2. Failover| P2
+    Router -.->|3. Fallback| P3
+
+    %% Styling
+    classDef app fill:#2d3436,stroke:#0984e3,stroke-width:2px,color:#fff;
+    classDef engine fill:#1e272e,stroke:#00d2d3,stroke-width:2px,color:#fff;
+    classDef gate fill:#2f3542,stroke:#ff9f43,stroke-width:3px,color:#fff;
+    classDef provider fill:#2d3436,stroke:#1dd1a1,stroke-width:2px,color:#fff;
+
+    class App1,App2,App3 app;
+    class Ingress,Auth,Parser engine;
+    class Router gate;
+    class P1,P2,P3 provider;
+    class StateDB engine;
+```
 
 ## Quick Start
 
