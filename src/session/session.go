@@ -64,31 +64,29 @@ func (s *Session) Data(r io.Reader) error {
 
 	// 4. Call the plugin
 	log.Println("Calling plugin selector...")
-	selectedAddr, err := selector.Select(s.CurrentUser.Downstreams)
+	orderedDownstreams, err := selector.Select(s.CurrentUser.Downstreams)
 	if err != nil {
 		log.Printf("Plugin selection failed: %v", err)
 		return err
 	}
-	log.Printf("Plugin selected: %s", selectedAddr)
+	log.Printf("Plugin selected: %s", orderedDownstreams)
 
-	// 5. Find the selected downstream credentials
-	var selectedDS types.Downstream
-	found := false
-	for _, ds := range s.CurrentUser.Downstreams {
-		if ds.Addr == selectedAddr {
-			selectedDS = ds
-			found = true
+	sendSuccess := false
+	for _, selectedDS := range orderedDownstreams {
+		// Update the From field in the mail data to the selected downstream user
+		updatedMailData := UpdateFromUser(mailData, selectedDS.User)
+		if err := send(selectedDS.User, selectedDS.Pass, selectedDS.Addr, selectedDS.User, s.To, updatedMailData); err != nil {
+			log.Printf("Error sending mail: %v via %s", err, selectedDS.Addr)
+		} else {
+			sendSuccess = true
+			log.Printf("Mail sent successfully via %s", selectedDS.Addr)
 			break
 		}
-	}
-	if !found {
-		return errors.New("selected downstream not found in config")
+
 	}
 
-	// Update the From field in the mail data to the selected downstream user
-	updatedMailData := UpdateFromUser(mailData, selectedDS.User)
-	if err := send(selectedDS.User, selectedDS.Pass, selectedDS.Addr, selectedDS.User, s.To, updatedMailData); err != nil {
-		return err
+	if !sendSuccess {
+		return errors.New("mail could not be sent to any downstream")
 	}
 
 	return nil
