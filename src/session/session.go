@@ -71,20 +71,6 @@ func (s *Session) Data(r io.Reader) error {
 	}
 	log.Printf("Plugin selected: %s", orderedDownstreams)
 
-	// 5. Find the selected downstream credentials
-	// var selectedDS types.Downstream
-	// found := false
-	// for _, ds := range s.CurrentUser.Downstreams {
-	// 	if ds.Addr == selectedAddr {
-	// 		selectedDS = ds
-	// 		found = true
-	// 		break
-	// 	}
-	// }
-	// if !found {
-	// 	return errors.New("selected downstream not found in config")
-	// }
-
 	sendSuccess := false
 	for _, selectedDS := range orderedDownstreams {
 		// Update the From field in the mail data to the selected downstream user
