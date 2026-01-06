@@ -1,4 +1,12 @@
 # SMTP Mux
+<p align="center">
+  <a href="https://github.com/Mindbaz/awesome-opensource-email/">
+    <img src="smtpmux.svg" alt="Awesome Opensource Email">
+  </a>
+</p>
+
+
+
 SmtpMux is a pluggable SMTP proxy and router written in Go that solves these reliability issues by acting as an intelligent intermediary (multiplexer) between your applications and your mail providers.
 
 Many self-hosted applications and microservices (such as Vaultwarden, Nextcloud, or Gitea) only support the configuration of a single SMTP server. This creates a critical single point of failure in the system's communication layer:

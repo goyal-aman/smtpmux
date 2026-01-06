@@ -1,0 +1,29 @@
+<svg width="400" height="400" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="256" cy="450" rx="120" ry="20" fill="#1A1A1A" fill-opacity="0.2"/>
+  
+  <rect x="156" y="140" width="200" height="260" rx="100" fill="#F0AD4E" stroke="#000033" stroke-width="12"/>
+  <rect x="156" y="280" width="200" height="120" rx="60" fill="#00ADD8" stroke="#000033" stroke-width="12"/>
+  
+  <path d="M160 160 C 160 100, 352 100, 352 160 Z" fill="#000080" stroke="#000033" stroke-width="10"/>
+  <rect x="150" y="150" width="212" height="30" rx="15" fill="#000080" stroke="#000033" stroke-width="10"/>
+  <rect x="236" y="115" width="40" height="25" rx="4" fill="white" stroke="#000033" stroke-width="4"/>
+  <path d="M236 115 L256 130 L276 115" stroke="#000033" stroke-width="4" fill="none"/>
+
+  <circle cx="216" cy="230" r="40" fill="white" stroke="#000033" stroke-width="8"/>
+  <circle cx="216" cy="230" r="15" fill="#000033"/>
+  <circle cx="296" cy="230" r="40" fill="white" stroke="#000033" stroke-width="8"/>
+  <circle cx="296" cy="230" r="15" fill="#000033"/>
+  <rect x="241" y="280" width="30" height="30" rx="5" fill="white" stroke="#000033" stroke-width="6"/>
+  <line x1="256" y1="280" x2="256" y2="310" stroke="#000033" stroke-width="4"/>
+
+  <g>
+    <rect x="181" y="320" width="150" height="90" rx="8" fill="white" stroke="#000033" stroke-width="10"/>
+    <path d="M181 320 L256 370 L331 320" stroke="#000033" stroke-width="10" fill="none"/>
+    <rect x="130" y="340" width="40" height="8" rx="4" fill="#FF0055"/>
+    <rect x="110" y="360" width="60" height="8" rx="4" fill="#FF0055"/>
+    <rect x="340" y="340" width="40" height="8" rx="4" fill="#00ADD8"/>
+    <rect x="340" y="360" width="60" height="8" rx="4" fill="#00ADD8"/>
+  </g>
+
+  <text x="50%" y="490" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="64" fill="#000033">smtpmux</text>
+</svg>
