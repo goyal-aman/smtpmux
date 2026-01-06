@@ -20,7 +20,7 @@ go build -o ./plugins/round_robin/round-robin-plugin ./plugins/round_robin/main.
 // Here is a real implementation of Selector
 type RoundRobinSelector struct{}
 
-func (s *RoundRobinSelector) Select(downstreams []types.Downstream) (string, error) {
+func (s *RoundRobinSelector) Select(downstreams []types.Downstream) ([]types.Downstream, error) {
 	log.Println("Executing RoundRobin plugin...")
 
 	// Simple logic: just pick the first one for now, or implement actual round robin state
@@ -28,15 +28,17 @@ func (s *RoundRobinSelector) Select(downstreams []types.Downstream) (string, err
 	// However, the host might restart plugins.
 
 	if len(downstreams) == 0 {
-		return "", errors.New("no downstreams available")
+		return make([]types.Downstream, 0), errors.New("no downstreams available")
 	}
 
-	N := len(downstreams)
-	index := rand.Intn(N)
-	// For demonstration, we just return the first one.
+	// For demonstration, we just as is
 	// In a real round-robin, we'd need to persist state or use a random strategy if stateless.
-	log.Println("Selected downstream:", downstreams[index].Addr)
-	return downstreams[index].Addr, nil
+	rand.Shuffle(len(downstreams), func(i, j int) {
+		log.Println("Shuffling downstreams...")
+		downstreams[i], downstreams[j] = downstreams[j], downstreams[i]
+	})
+	log.Println("Selected downstreams:", downstreams)
+	return downstreams, nil
 }
 
 func main() {

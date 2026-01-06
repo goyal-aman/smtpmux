@@ -9,17 +9,17 @@ import (
 
 // Selector is the interface that we're exposing as a plugin.
 type Selector interface {
-	Select(downstreams []types.Downstream) (string, error)
+	Select(downstreams []types.Downstream) ([]types.Downstream, error)
 }
 
 // Here is an implementation that talks over RPC
 type SelectorRPC struct{ client *rpc.Client }
 
-func (g *SelectorRPC) Select(downstreams []types.Downstream) (string, error) {
-	var resp string
+func (g *SelectorRPC) Select(downstreams []types.Downstream) ([]types.Downstream, error) {
+	var resp []types.Downstream
 	err := g.client.Call("Plugin.Select", downstreams, &resp)
 	if err != nil {
-		return "", err
+		return make([]types.Downstream, 0), err
 	}
 	return resp, nil
 }
@@ -29,7 +29,7 @@ type SelectorRPCServer struct {
 	Impl Selector
 }
 
-func (s *SelectorRPCServer) Select(args []types.Downstream, resp *string) error {
+func (s *SelectorRPCServer) Select(args []types.Downstream, resp *[]types.Downstream) error {
 	var err error
 	*resp, err = s.Impl.Select(args)
 	return err
