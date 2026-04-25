@@ -1,13 +1,13 @@
-# SMTP Mux
+# Email Router
 <p align="center">
   <a href="https://github.com/Mindbaz/awesome-opensource-email/">
-    <img src="smtpmux.svg" alt="Awesome Opensource Email">
+    <img src="Email Router.svg" alt="Awesome Opensource Email">
   </a>
 </p>
 
 
 
-SmtpMux is a pluggable SMTP proxy and router written in Go that solves these reliability issues by acting as an intelligent intermediary (multiplexer) between your applications and your mail providers.
+Email Router is a pluggable SMTP proxy and router written in Go that solves these reliability issues by acting as an intelligent intermediary (multiplexer) between your applications and your mail providers.
 
 Many self-hosted applications and microservices (such as Vaultwarden, Nextcloud, or Gitea) only support the configuration of a single SMTP server. This creates a critical single point of failure in the system's communication layer:
 
@@ -24,7 +24,7 @@ graph TD
     App2([User App B])
     App3([Microservice C])
 
-    subgraph MUX_CORE ["smtpmux Proxy Layer"]
+    subgraph MUX_CORE ["Email Router Proxy Layer"]
         direction TB
         Ingress{{"📥 SMTP Ingress <br/> (Port 25/587)"}}
         
@@ -73,7 +73,7 @@ graph TD
 
 Full the image from registry with local smtp downstreams
 ```
-docker pull ghcr.io/goyal-aman/smtpmux:latest
+docker pull ghcr.io/goyal-aman/Email Router:latest
 ```
 
 Create config.yaml 
@@ -93,27 +93,27 @@ users:
 
 Start downstreams
 ```
-docker network create smtpmux-net
-docker run --rm -d -p 8026:8025 --name mailserve1 --network=smtpmux-net mailhog/mailhog
-docker run --rm -d -p 8027:8025 --name mailserve2 --network=smtpmux-net mailhog/mailhog
+docker network create Email Router-net
+docker run --rm -d -p 8026:8025 --name mailserve1 --network=Email Router-net mailhog/mailhog
+docker run --rm -d -p 8027:8025 --name mailserve2 --network=Email Router-net mailhog/mailhog
 ```
 
 Open localhost:8026 and localhost:8027 in brower to see the emails.
 
-Start smtpmux
+Start Email Router
 ```
 docker run -p 1024:1020 \
         -v $(pwd)/config.yaml:/app/config.yaml \
-        --network=smtpmux-net \
+        --network=Email Router-net \
         -e USE_INSECURE_AUTH=true \
-        ghcr.io/goyal-aman/smtpmux:latest
+        ghcr.io/goyal-aman/Email Router:latest
 ```
 
-smptmux is now running. Now lets try to send an email through it. 
+email-router is now running. Now lets try to send an email through it. 
 
 Run this few times so see round robin in action
 ```
-swaks --to hello@smtpmux.what \
+swaks --to hello@Email Router.what \
       --from curious@user.com \
       --server localhost:1024 \
       -a PLAIN \
@@ -166,7 +166,7 @@ Run with Docker:
 
 ```bash
 docker build -t smtp-router .
-docker run -p 1020:1020 -v $(pwd)/config.yaml:/app/config.yaml -v $(pwd)/round_robin.star:/app/round_robin.star smtpmux
+docker run -p 1020:1020 -v $(pwd)/config.yaml:/app/config.yaml -v $(pwd)/round_robin.star:/app/round_robin.star Email Router
 ```
 
 ## Development
