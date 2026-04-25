@@ -1,7 +1,7 @@
 # Email Router
 <p align="center">
   <a href="https://github.com/Mindbaz/awesome-opensource-email/">
-    <img src="Email Router.svg" alt="Awesome Opensource Email">
+    <img src="smtpmux.svg" alt="Awesome Opensource Email">
   </a>
 </p>
 
@@ -73,7 +73,7 @@ graph TD
 
 Full the image from registry with local smtp downstreams
 ```
-docker pull ghcr.io/goyal-aman/Email Router:latest
+docker pull ghcr.io/goyal-aman/smtpmux:latest
 ```
 
 Create config.yaml 
@@ -94,8 +94,8 @@ users:
 Start downstreams
 ```
 docker network create Email Router-net
-docker run --rm -d -p 8026:8025 --name mailserve1 --network=Email Router-net mailhog/mailhog
-docker run --rm -d -p 8027:8025 --name mailserve2 --network=Email Router-net mailhog/mailhog
+docker run --rm -d -p 8026:8025 --name mailserve1 --network=smtpmux-net mailhog/mailhog
+docker run --rm -d -p 8027:8025 --name mailserve2 --network=smtpmux-net mailhog/mailhog
 ```
 
 Open localhost:8026 and localhost:8027 in brower to see the emails.
@@ -104,16 +104,16 @@ Start Email Router
 ```
 docker run -p 1024:1020 \
         -v $(pwd)/config.yaml:/app/config.yaml \
-        --network=Email Router-net \
+        --network=smtpmux-net \
         -e USE_INSECURE_AUTH=true \
-        ghcr.io/goyal-aman/Email Router:latest
+        ghcr.io/goyal-aman/smtpmux:latest
 ```
 
 email-router is now running. Now lets try to send an email through it. 
 
 Run this few times so see round robin in action
 ```
-swaks --to hello@Email Router.what \
+swaks --to hello@emailrouter.what \
       --from curious@user.com \
       --server localhost:1024 \
       -a PLAIN \
@@ -166,7 +166,7 @@ Run with Docker:
 
 ```bash
 docker build -t smtp-router .
-docker run -p 1020:1020 -v $(pwd)/config.yaml:/app/config.yaml -v $(pwd)/round_robin.star:/app/round_robin.star Email Router
+docker run -p 1020:1020 -v $(pwd)/config.yaml:/app/config.yaml -v $(pwd)/round_robin.star:/app/round_robin.star smtpmux
 ```
 
 ## Development
